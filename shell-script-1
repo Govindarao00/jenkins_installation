@@ -1,0 +1,17 @@
+#!/bin/bash
+
+echo "This script will check the system usage details like cpu,ram,memory,etc"
+
+set -x
+
+nproc
+
+free -h
+
+du -h
+
+df -h
+
+#To check all the details in one place
+
+top
