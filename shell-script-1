@@ -1,17 +1,60 @@
-#!/bin/bash
+#!/usr/bin/env bash
+if [[ $(id -u) -ne 0 ]]
+then
+	echo "Please run this script from root only"
+	exit 1
+fi
 
-echo "This script will check the system usage details like cpu,ram,memory,etc"
+if [[ $(cat /etc/os-release | awk -F= '/NAME=/  && NR==1 { print $2 }' | tr -d '"' | awk '{print $1}' | tr [A-Z] [a-z] ) != ubuntu ]]
+then
+	echo "This script works for only ubuntu"
+	echo "Thank you!!!"
+	exit 2
+fi
+echo "###################################################################################"
+echo "# OS is identified as Ubuntu                                                      #"
+echo "# This Script will remove old jenkins version and install latest stable jenkins  #"
+echo "###################################################################################"
+sleep 1
+echo "==> Removing older version of jenkins if any...."
+apt-get remove --purge jenkins -y 2>/dev/null
+rm /etc/apt/sources.list.d/jenkins.list
 
-set -x
+echo "==> Updating exiting list of packagesss..."
+apt-get update -y
 
-nproc
+echo "Installing java...."
+apt-get install openjdk-11-jre -y
 
-free -h
+echo "==> Downloadind and Installing dependencies......."
+curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo tee \
+  /usr/share/keyrings/jenkins-keyring.asc > /dev/null
+echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
+  https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
+  /etc/apt/sources.list.d/jenkins.list > /dev/null
 
-du -h
+echo "==> Updating the Jenkins packages from the newly added repo..."
+apt-get update -y
 
-df -h
+echo "==> Now installing Jenkins....." 
+apt-get install jenkins -y
 
-#To check all the details in one place
-
-top
+if [[ $? -ne 0 ]]
+then
+	echo "====>  Sorry Failed to install Jenkins. Try it manually  <===="
+	exit 2
+fi
+echo "====>  Jenkins has been installed successfully on this host - $(hostname -s)  <===="
+if systemctl status jenkins &>/dev/null 
+then
+	echo "====>  And it is up and running... You can verify it using cmd: systemctl status jenkins  <===="
+else
+	echo "====>  But it is not running. You can start it manually using cmd: systemctl start jenkins  <===="
+fi
+<< comment
+echo "#############################################"
+echo "# Now, You can play with jenkins             #"
+echo "# jenkins Info on $(hostname -s) is: #"
+echo "# jenkins Version is: $(jenkins --version) #"
+echo "#############################################"
+comment
